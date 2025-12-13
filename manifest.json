@@ -1,0 +1,11 @@
+{
+	"id": "Pdf-to-Canvas",
+	"name": "Pdf to Canvas",
+	"version": "1.0.0",
+	"minAppVersion": "0.15.0",
+	"description": "Simple plugin to import pdfs into obsdian canvas in a page by page style",
+	"author": "StefanoVerrilli",
+	"authorUrl": "https://github.com/StefanoVerrilli",
+	"fundingUrl": "https://obsidian.md/pricing",
+	"isDesktopOnly": false
+}
