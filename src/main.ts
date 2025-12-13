@@ -192,7 +192,7 @@ export default class PdfToCanvasPlugin extends Plugin {
 						nodeType = 'text';
 						fileOrTextPayload = { text: `![](${dataUrl})` };
 					} else {
-						// FILE MODE: Save to Vault
+						// FILE MODE: Save to Vault (Allowing user to chose)
 						const base64Data = dataUrl.split(',')[1];
 						const imageBuffer = this.base64ToArrayBuffer(base64Data);
 						const imageName = `Page ${i}.jpg`;
