@@ -4,7 +4,7 @@ import * as pdfjsLib from 'pdfjs-dist';
 // --- Settings Definition ---
 interface PdfToCanvasSettings {
     folderPath: string;
-    embedMode: boolean; // True = Base64 (No files), False = Save Images (Files)
+    embedMode: boolean; // True = Base64 (No files), False = Save Images (Files) to remember
     renderScale: number;
 }
 
@@ -179,16 +179,12 @@ export default class PdfToCanvasPlugin extends Plugin {
                 canvas.width = viewport.width;
 
                 if (context) {
-                    // FIX: Create object and cast it safely
                     const renderContext = {
                         canvasContext: context,
                         viewport: viewport,
                         canvas: canvas // Added to satisfy strict type requirements
                     };
                     
-                    // We cast to `unknown` first, then to the expected type.
-                    // This bypasses "missing property" errors for optional internal props 
-                    // without using 'any'.
                     await page.render(renderContext as unknown as Parameters<typeof page.render>[0]).promise;
 
                     const dataUrl = canvas.toDataURL('image/jpeg', jpegQuality);
