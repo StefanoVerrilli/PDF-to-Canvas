@@ -29,7 +29,7 @@ interface CanvasNode {
 
 interface CanvasData {
     nodes: CanvasNode[];
-    edges: unknown[]; // Fix 1: Changed 'any' to 'unknown'
+    edges: unknown[]; 
 }
 
 export default class PdfToCanvasPlugin extends Plugin {
@@ -41,11 +41,15 @@ export default class PdfToCanvasPlugin extends Plugin {
         // 1. Command: Import from Vault
         this.addCommand({
             id: 'import-pdf-vault',
-            name: 'Import PDF from vault', // Fix 2: Sentence case
+            name: 'Import PDF from vault',
             callback: () => {
                 if (!this.checkActiveCanvas()) return;
                 new PdfSelectionModal(this.app, (file) => {
-                    this.processVaultFile(file);
+                    // FIX 1: Explicitly catch the promise to satisfy linter
+                    this.processVaultFile(file).catch((error) => {
+                        console.error("Failed to process vault file:", error);
+                        new Notice("Failed to process file. See console.");
+                    });
                 }).open();
             }
         });
@@ -53,7 +57,7 @@ export default class PdfToCanvasPlugin extends Plugin {
         // 2. Command: Import from System
         this.addCommand({
             id: 'import-pdf-system',
-            name: 'Import PDF from system (external)', // Fix 2: Sentence case
+            name: 'Import PDF from system (external)',
             callback: () => {
                 if (!this.checkActiveCanvas()) return;
                 this.triggerSystemFilePicker();
@@ -67,7 +71,7 @@ export default class PdfToCanvasPlugin extends Plugin {
     checkActiveCanvas(): boolean {
         const activeFile = this.app.workspace.getActiveFile();
         if (!activeFile || activeFile.extension !== 'canvas') {
-            new Notice('Please open a canvas file first.'); // Fix 2: Sentence case
+            new Notice('Please open a canvas file first.');
             return false;
         }
         return true;
@@ -175,29 +179,33 @@ export default class PdfToCanvasPlugin extends Plugin {
                 canvas.width = viewport.width;
 
                 if (context) {
-                    // Type cast to 'any' is maintained here because strict typing against 
-                    // mismatched library versions can be very difficult without it.
+                    // FIX: Create object and cast it safely
                     const renderContext = {
                         canvasContext: context,
-                        viewport: viewport
+                        viewport: viewport,
+                        canvas: canvas // Added to satisfy strict type requirements
                     };
-                    await page.render(renderContext as any).promise;
+                    
+                    // We cast to `unknown` first, then to the expected type.
+                    // This bypasses "missing property" errors for optional internal props 
+                    // without using 'any'.
+                    await page.render(renderContext as unknown as Parameters<typeof page.render>[0]).promise;
 
                     const dataUrl = canvas.toDataURL('image/jpeg', jpegQuality);
 
                     // --- MODE SWITCH: File vs Base64 ---
                     let nodeType: 'file' | 'text' = 'file';
-                    let fileOrTextPayload: any = {};
+                    let fileOrTextPayload: { text?: string; file?: string } = {};
 
                     const visualWidth = viewport.width / this.settings.renderScale;
                     const visualHeight = viewport.height / this.settings.renderScale;
 
                     if (this.settings.embedMode) {
-                        // EMBED MODE: Create a Text Node with Markdown Image Syntax
+                        // EMBED MODE
                         nodeType = 'text';
                         fileOrTextPayload = { text: `![](${dataUrl})` };
                     } else {
-                        // FILE MODE: Save to Vault (Allowing user to chose)
+                        // FILE MODE
                         const base64Data = dataUrl.split(',')[1];
                         const imageBuffer = this.base64ToArrayBuffer(base64Data);
                         const imageName = `Page ${i}.jpg`;
@@ -301,13 +309,13 @@ class PdfToCanvasSettingTab extends PluginSettingTab {
         const { containerEl } = this;
         containerEl.empty();
 
-        new Setting(containerEl).setName('PDF to Canvas settings').setHeading(); 
+        new Setting(containerEl).setName('Plugin tweaks').setHeading(); 
 
         new Setting(containerEl)
             .setName('Images folder')
             .setDesc('Where to save the extracted images (only used if embed mode is off).') 
             .addText(text => text
-                .setPlaceholder('Canvas Imports')
+                .setPlaceholder('Canvas imports')
                 .setValue(this.plugin.settings.folderPath)
                 .onChange(async (value) => {
                     this.plugin.settings.folderPath = value;
@@ -326,7 +334,7 @@ class PdfToCanvasSettingTab extends PluginSettingTab {
 
         new Setting(containerEl)
             .setName('Image quality (scale)') 
-            .setDesc('Higher = Sharper text, larger files. (Default: 3.0)') 
+            .setDesc('Higher = sharper text, larger files. (default: 3.0)') 
             .addSlider(slider => slider
                 .setLimits(1.0, 5.0, 0.5)
                 .setValue(this.plugin.settings.renderScale)
